@@ -3,8 +3,9 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { pool } from './config/database';
 import authRoutes from './routes/auth.routes';
-import { verificarToken, AuthRequest } from './middlewares/auth.middleware';
+import { verificarToken, AuthRequest } from './middleware/auth.middleware';
 import usuarioRoutes from './routes/usuario.routes';
+import solicitudRoutes from './routes/solicitud.routes';
 
 dotenv.config();
 
@@ -13,6 +14,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+app.use('/api/solicitudes', solicitudRoutes);
 
 // Ruta de salud, para verificar que el servidor está vivo
 app.get('/health', (req, res) => {

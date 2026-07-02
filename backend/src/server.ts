@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { pool } from './config/database';
 import authRoutes from './routes/auth.routes';
 import { verificarToken, AuthRequest } from './middlewares/auth.middleware';
+import usuarioRoutes from './routes/usuario.routes';
 
 dotenv.config();
 
@@ -27,11 +28,8 @@ app.get('/db-test', async (req, res) => {
   }
 });
 
-app.get('/api/perfil-test', verificarToken, (req: AuthRequest, res) => {
-  res.json({ message: 'Ruta protegida accedida con éxito', usuario: req.usuario });
-});
-
 app.use('/api/auth', authRoutes);
+app.use('/api/usuarios', usuarioRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);

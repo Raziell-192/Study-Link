@@ -48,3 +48,17 @@ export async function buscarSolicitudPorId(id_solicitud: string): Promise<Solici
   const result = await pool.query(query, [id_solicitud]);
   return result.rows[0] || null;
 }
+
+export async function aceptarSolicitud(
+  id_solicitud: string,
+  id_tutor: string
+): Promise<Solicitud | null> {
+  const query = `
+    UPDATE solicitud_estudio
+    SET id_tutor = $2, estado = 'En proceso'
+    WHERE id_solicitud = $1 AND estado = 'Abierta'
+    RETURNING *;
+  `;
+  const result = await pool.query(query, [id_solicitud, id_tutor]);
+  return result.rows[0] || null;
+}

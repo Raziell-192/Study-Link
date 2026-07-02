@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { crearSolicitud, listarSolicitudesPorMateria } from '../models/solicitud.model';
+import { aceptarSolicitud, buscarSolicitudPorId } from '../models/solicitud.model';
 
 export async function crear(req: AuthRequest, res: Response) {
   try {
@@ -49,6 +50,40 @@ export async function listarPorMateria(req: AuthRequest, res: Response) {
     return res.status(200).json({ solicitudes });
   } catch (error) {
     console.error('Error en listarPorMateria():', error);
+    return res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+}
+
+export async function aceptar(req: AuthRequest, res: Response) {
+  try {
+    const id_tutor = req.usuario!.id_usuario;
+    const { id_solicitud } = req.params;
+
+    const solicitud = await buscarSolicitudPorId(id_solicitud);
+    if (!solicitud) {
+      return res.status(404).json({ error: 'Solicitud no encontrada.' });
+    }
+
+    if (solicitud.id_usuario === id_tutor) {
+      return res.status(400).json({ error: 'No puedes aceptar tu propia solicitud.' });
+    }
+
+    if (solicitud.estado !== 'Abierta') {
+      return res.status(409).json({ error: 'La solicitud ya no está disponible.' });
+    }
+
+    const solicitudActualizada = await aceptarSolicitud(id_solicitud, id_tutor);
+    if (!solicitudActualizada) {
+      // Otro tutor la aceptó justo antes (condición de carrera)
+      return res.status(409).json({ error: 'La solicitud ya fue aceptada por otro tutor.' });
+    }
+
+    return res.status(200).json({
+      message: 'Solicitud aceptada exitosamente.',
+      solicitud: solicitudActualizada,
+    });
+  } catch (error) {
+    console.error('Error en aceptar():', error);
     return res.status(500).json({ error: 'Error interno del servidor.' });
   }
 }

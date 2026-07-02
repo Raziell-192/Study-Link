@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { buscarPorId, actualizarPerfil } from '../models/usuario.model';
+import { buscarTutoresPorMateria } from '../models/usuario.model';
 
 export async function obtenerMiPerfil(req: AuthRequest, res: Response) {
   try {
@@ -41,6 +42,17 @@ export async function actualizarMiPerfil(req: AuthRequest, res: Response) {
     });
   } catch (error) {
     console.error('Error en actualizarMiPerfil():', error);
+    return res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+}
+
+export async function listarTutoresPorMateria(req: AuthRequest, res: Response) {
+  try {
+    const { id_materia } = req.params;
+    const tutores = await buscarTutoresPorMateria(id_materia);
+    return res.status(200).json({ tutores });
+  } catch (error) {
+    console.error('Error en listarTutoresPorMateria():', error);
     return res.status(500).json({ error: 'Error interno del servidor.' });
   }
 }

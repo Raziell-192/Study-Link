@@ -77,3 +77,23 @@ export async function actualizarPerfil(
   const result = await pool.query(query, [id_usuario, ...valores]);
   return result.rows[0] || null;
 }
+export interface TutorRecomendado {
+  id_usuario: string;
+  nombre_completo: string;
+  correo: string;
+  carrera: string | null;
+  reputacion: number;
+  nivel_conocimiento: string;
+}
+
+export async function buscarTutoresPorMateria(id_materia: string): Promise<TutorRecomendado[]> {
+  const query = `
+    SELECT u.id_usuario, u.nombre_completo, u.correo, u.carrera, u.reputacion, um.nivel_conocimiento
+    FROM usuario_materia um
+    JOIN usuario u ON u.id_usuario = um.id_usuario
+    WHERE um.id_materia = $1 AND um.nivel_conocimiento = 'Avanzado'
+    ORDER BY u.reputacion DESC;
+  `;
+  const result = await pool.query(query, [id_materia]);
+  return result.rows;
+}

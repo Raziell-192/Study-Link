@@ -1,0 +1,39 @@
+# ==== General ====
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example
+
+# ==== Node.js / Backend ====
+backend/node_modules/
+backend/dist/
+backend/coverage/
+backend/npm-debug.log*
+backend/.env
+
+# ==== Flutter / Dart ====
+app/.dart_tool/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/.packages
+app/build/
+app/.pub-cache/
+app/.pub/
+app/ios/Pods/
+app/ios/.symlinks/
+app/ios/Flutter/Flutter.framework
+app/ios/Flutter/Flutter.podspec
+app/android/.gradle/
+app/android/local.properties
+app/*.iml
+
+# ==== IDEs ====
+.vscode/
+.idea/
+*.iml
+*.swp
+
+# ==== Isar (BD local offline) ====
+app/**/*.isar
+app/**/*.isar.lock

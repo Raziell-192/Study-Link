@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { pool } from './config/database';
 import authRoutes from './routes/auth.routes';
+import { verificarToken, AuthRequest } from './middlewares/auth.middleware';
 
 dotenv.config();
 
@@ -24,6 +25,10 @@ app.get('/db-test', async (req, res) => {
   } catch (error) {
     res.status(500).json({ status: 'error', message: (error as Error).message });
   }
+});
+
+app.get('/api/perfil-test', verificarToken, (req: AuthRequest, res) => {
+  res.json({ message: 'Ruta protegida accedida con éxito', usuario: req.usuario });
 });
 
 app.use('/api/auth', authRoutes);

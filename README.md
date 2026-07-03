@@ -1,9 +1,7 @@
 # StudyLink 
-# StudyLink 
 
 Plataforma móvil de aprendizaje colaborativo universitario. Conecta estudiantes para tutorías, grupos de estudio, biblioteca de apuntes, flashcards, cuestionarios, calendario y seguimiento de progreso académico — con soporte offline.
 
-##  Estructura del repositorio
 ##  Estructura del repositorio
 
 ```
@@ -22,7 +20,6 @@ studylink/
 ```
 
 ##  Stack Tecnológico
-##  Stack Tecnológico
 
 | Capa | Tecnología |
 |---|---|
@@ -35,7 +32,6 @@ studylink/
 | Arquitectura | MVVM + Clean Architecture (Repository Pattern con fallback online/offline) |
 
 ## Cómo empezar
-##  Cómo empezar
 
 ### Backend
 ```bash
@@ -52,6 +48,5 @@ flutter run
 ```
 
 ##  Documentación funcional
-## Documentación funcional
 
 Toda la documentación del proyecto (requisitos, casos de uso, historias de usuario y modelo de datos) vive en [`docs/`](./docs).

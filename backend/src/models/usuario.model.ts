@@ -51,6 +51,21 @@ export async function buscarPorId(id_usuario: string): Promise<Usuario | null> {
   return result.rows[0] || null;
 }
 
+// HU-26/27: recalcula reputacion = promedio de puntuacion en calificacion, redondeado a 2 decimales.
+export async function actualizarReputacion(id_usuario: string): Promise<number> {
+  const query = `
+    UPDATE usuario
+    SET reputacion = COALESCE(
+      (SELECT ROUND(AVG(puntuacion)::numeric, 2) FROM calificacion WHERE id_tutor = $1),
+      0
+    )
+    WHERE id_usuario = $1
+    RETURNING reputacion;
+  `;
+  const result = await pool.query(query, [id_usuario]);
+  return result.rows[0]?.reputacion ?? 0;
+}
+
 export interface ActualizarPerfilInput {
   nombre_completo?: string;
   carrera?: string;

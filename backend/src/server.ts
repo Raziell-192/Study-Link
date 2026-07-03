@@ -8,6 +8,11 @@ import solicitudRoutes from './routes/solicitud.routes';
 import grupoRoutes from './routes/grupo.routes';
 import sesionRoutes from './routes/sesion.routes';
 import apunteRoutes from './routes/apunte.routes';
+import eventoRoutes from './routes/evento.routes';
+import recordatorioRoutes from './routes/recordatorio.routes';
+import calificacionRoutes from './routes/calificacion.routes';
+import flashcardRoutes from './routes/flashcard.routes';
+import cuestionarioRoutes from './routes/cuestionario.routes';
 
 dotenv.config();
 
@@ -37,6 +42,11 @@ app.use('/api/solicitudes', solicitudRoutes);
 app.use('/api/grupos', grupoRoutes);
 app.use('/api/sesiones', sesionRoutes);
 app.use('/api/apuntes', apunteRoutes);
+app.use('/api/eventos', eventoRoutes);
+app.use('/api/recordatorios', recordatorioRoutes);
+app.use('/api/calificaciones', calificacionRoutes);
+app.use('/api/flashcards', flashcardRoutes);
+app.use('/api/cuestionarios', cuestionarioRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);

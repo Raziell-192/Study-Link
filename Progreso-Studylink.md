@@ -37,6 +37,11 @@ backend/src/
 | 007 | `007_alter_miembro_grupo_rol.sql` | `miembro_grupo` (ALTER) | Se agregó el valor `'Organizador'` al CHECK de `rol`, para el creador del grupo. |
 | 008 | `008_create_sesion_estudio.sql` | `sesion_estudio` | Se agregó `id_creador` (no estaba en el MER). `modalidad` definida como `'Presencial'`/`'Virtual'`. CHECK `fecha_fin > fecha_inicio`. |
 | 009 | `009_create_apunte.sql` | `apunte` | Se agregó `tipo_archivo` (CHECK `'PDF'/'Imagen'/'Enlace'/'Presentacion'`, no está en el MER) y `descripcion` (no está en el MER, permite búsqueda de texto en HU-12). Índice en `id_materia` para el listado. |
+| 010 | `010_create_evento_calendario.sql` | `evento_calendario` | Se agregó `id_grupo` (nullable, no está en el MER) porque `compartido` por sí solo no indica a qué grupo se comparte. CHECK: si `compartido=true` entonces `id_grupo` es obligatorio, y viceversa. CHECK `fecha_fin > fecha_inicio`. |
+| 011 | `011_create_recordatorio.sql` | `recordatorio` | Tabla completa nueva, **no existe en el MER**. Ver decisión de diseño HU-20 más abajo. |
+| 012 | `012_create_calificacion.sql` | `calificacion` | Tal cual el MER, sin columnas extra. `UNIQUE(id_sesion, id_tutorado)` para evitar calificar dos veces la misma sesión. |
+| 013 | `013_create_flashcard.sql` | `flashcard`, `tarjeta` | Tal cual el MER, sin columnas extra. |
+| 014 | `014_create_cuestionario.sql` | `cuestionario`, `pregunta` | Se agregó `opciones` JSONB (nullable, no está en el MER) en `pregunta`, necesaria para persistir las opciones de tipo `OpcionMultiple`/`RelacionConceptos` (la `respuesta_correcta` sola no alcanza para renderizar la pregunta). |
 
 **Para correr todas las migraciones en un ambiente nuevo, en este orden exacto:**
 ```bash
@@ -49,6 +54,11 @@ psql -U postgres -d studylink -f backend/src/db/migrations/006_create_miembro_gr
 psql -U postgres -d studylink -f backend/src/db/migrations/007_alter_miembro_grupo_rol.sql
 psql -U postgres -d studylink -f backend/src/db/migrations/008_create_sesion_estudio.sql
 psql -U postgres -d studylink -f backend/src/db/migrations/009_create_apunte.sql
+psql -U postgres -d studylink -f backend/src/db/migrations/010_create_evento_calendario.sql
+psql -U postgres -d studylink -f backend/src/db/migrations/011_create_recordatorio.sql
+psql -U postgres -d studylink -f backend/src/db/migrations/012_create_calificacion.sql
+psql -U postgres -d studylink -f backend/src/db/migrations/013_create_flashcard.sql
+psql -U postgres -d studylink -f backend/src/db/migrations/014_create_cuestionario.sql
 ```
 (Aún no tenemos un runner automático de migraciones — está en pendientes.)
 
@@ -63,6 +73,16 @@ psql -U postgres -d studylink -f backend/src/db/migrations/009_create_apunte.sql
 - **HU-11 (Subir Apuntes) — el backend NO maneja el binario**: se decidió que el cliente (Flutter) sube el archivo directo a Firebase Storage y solo manda `archivo_url` ya resuelta al backend. El backend únicamente valida y guarda los metadatos (`titulo`, `descripcion`, `tipo_archivo`, `archivo_url`) en Postgres. No hay `multer` ni manejo de multipart en el backend. Motivo: no había credenciales de Firebase (`serviceAccountKey.json`) disponibles para integrar `firebase-admin` en este momento; queda como mejora futura si se decide subir por el backend en vez de por el cliente.
 - **HU-13 (Descargar Recursos)**: como el binario vive en Firebase, "descargar" es simplemente `GET /api/apuntes/:id_apunte`, que devuelve los metadatos + `archivo_url`, y el cliente descarga directo desde esa URL. El backend no hace proxy del archivo.
 - **`tipo_archivo` con CHECK `'PDF'/'Imagen'/'Enlace'/'Presentacion'`**: se tomó de la lista explícita en `AppMovil.md` sección 10 ("Biblioteca Compartida de Apuntes"), aunque el MER no tenía esta columna.
+- **HU-19 (Calendario Compartido) = `Evento_Calendario` (compartido) + `Sesion_Estudio` del grupo, combinados**: `AppMovil.md` sección 13 dice que el calendario compartido muestra tutorías/sesiones grupales/reuniones/actividades colaborativas — eso ya existe como `Sesion_Estudio` (Épica 3). En vez de duplicar esos datos en `Evento_Calendario`, `GET /api/eventos/grupo/:id_grupo` combina ambas fuentes (eventos compartidos + sesiones del grupo) en una sola línea de tiempo ordenada por fecha, marcando el `origen` de cada item.
+- **HU-20 (Recordatorios) — el backend NO envía push notifications**: igual que con HU-11, no había credenciales de Firebase Admin/FCM disponibles. Se decidió que el backend solo persiste recordatorios (tabla `recordatorio`, nueva, no está en el MER) y expone `GET /api/recordatorios/pendientes`, que el cliente Flutter consulta periódicamente (polling) para decidir cuándo notificar (local o vía FCM) y luego marca como `enviado` con `PATCH /api/recordatorios/:id/enviado`. Al crear un evento (HU-18) se puede pasar `recordatorio_minutos_antes` y el backend autogenera el recordatorio correspondiente.
+- **Compartir un evento requiere ser miembro del grupo**: `POST /api/eventos` valida con `esMiembro()` (reutilizada de `grupo.model.ts`) antes de permitir `compartido=true` con un `id_grupo`. Mismo criterio para `GET /api/eventos/grupo/:id_grupo`.
+- **HU-26 (Calificar Tutor) — `calificacion` tal cual el MER, sin desglose por criterio**: `AppMovil.md` sección 17 lista 4 criterios (claridad, conocimiento, puntualidad, materiales), pero el MER solo tiene una `puntuacion` global (1-5) + `comentario`. Se respetó el MER, igual que en HU-07: los 4 criterios quedan como guía cualitativa para el comentario, no como columnas separadas. Si más adelante se quiere desglose, es una migración nueva.
+- **Validación de HU-26**: el `id_tutorado` sale del JWT (regla de oro). Se valida que (1) la sesión exista, (2) el tutorado sea miembro del grupo de esa sesión, (3) el `id_tutor` recibido tenga rol `Tutor` u `Organizador` en ese mismo grupo, (4) nadie se autocalifique, y (5) `UNIQUE(id_sesion, id_tutorado)` en BD evita calificar la misma sesión dos veces (se captura el error `23505` y se responde 409).
+- **`usuario.reputacion` se recalcula automáticamente**: tras cada `POST /api/calificaciones` exitoso se llama `actualizarReputacion(id_tutor)`, que hace `UPDATE usuario SET reputacion = AVG(puntuacion) ...`. Antes de esta épica la columna `reputacion` existía en el MER pero nada la actualizaba (HU-05 solo la leía). Es un cálculo simple (promedio), no el "Sistema de Recomendación de Tutores" completo de `AppMovil.md` sección 8 (que considera historial académico, disponibilidad, etc.) — eso queda como mejora futura, igual que se documentó para HU-05.
+- **HU-15 (Compartir Flashcards) = visibilidad pública, no edición colaborativa**: el MER no tiene `id_grupo` ni `id_materia` en `Flashcard`, solo `compartida BOOLEAN`. `AppMovil.md` sección 11 menciona "Flashcards Compartidas: creadas y editadas por varios miembros", pero eso implicaría una tabla de colaboradores que no está en el MER. Se implementó la interpretación simple y consistente con el MER: `compartida=true` hace la flashcard visible (solo lectura) para cualquier usuario vía `GET /api/flashcards/compartidas`; sigue siendo editable solo por su dueño. La edición colaborativa queda como mejora futura si se decide extender el modelo.
+- **`pregunta.opciones` (JSONB, no está en el MER)**: necesaria para que el cliente pueda renderizar las opciones de preguntas tipo `OpcionMultiple` y `RelacionConceptos`; queda `NULL` para `VerdaderoFalso` y `RespuestaCorta`.
+- **HU-17 (Resolver Cuestionario) — calificación automática simple, sin persistir intentos**: no hay entidad "Intento_Cuestionario" en el MER, así que `POST /api/cuestionarios/:id/resolver` es stateless: recibe las respuestas, las compara contra `respuesta_correcta` (normalizando texto: trim + minúsculas) y devuelve el puntaje al momento, sin guardar el intento en BD. Es una limitación conocida — el "Seguimiento del Progreso" (sección 15 de `AppMovil.md`, "Cuestionarios completados") requeriría una tabla de intentos, que se puede agregar en la Épica 8 si hace falta.
+- **Cuestionarios colaborativos** (`AppMovil.md` sección 12, editados por varios miembros de un grupo) **no se implementaron**: el MER no soporta multi-autor en `Cuestionario` (un solo `id_usuario`). Queda fuera de esta Épica, igual criterio que con flashcards compartidas.
 
 ## 5. Historias de Usuario completadas
 
@@ -81,18 +101,30 @@ psql -U postgres -d studylink -f backend/src/db/migrations/009_create_apunte.sql
 | HU-11 | Subir Apuntes | `POST /api/apuntes` |
 | HU-12 | Consultar Biblioteca | `GET /api/apuntes/buscar?q=...&id_materia=...`, `GET /api/apuntes/materia/:id_materia` |
 | HU-13 | Descargar Recursos | `GET /api/apuntes/:id_apunte` (además `DELETE /api/apuntes/:id_apunte`, solo el autor puede borrar su apunte) |
+| HU-18 | Crear Evento Personal | `POST /api/eventos`, `GET /api/eventos` (además `GET /api/eventos/:id_evento`, `DELETE /api/eventos/:id_evento`) |
+| HU-19 | Visualizar Calendario Compartido | `GET /api/eventos/grupo/:id_grupo` (combina eventos compartidos + sesiones de estudio del grupo) |
+| HU-20 | Recibir Recordatorios | `POST /api/recordatorios`, `GET /api/recordatorios/pendientes`, `GET /api/recordatorios`, `PATCH /api/recordatorios/:id_recordatorio/enviado` |
+| HU-26 | Calificar Tutor | `POST /api/calificaciones` |
+| HU-27 | Consultar Reputación | `GET /api/calificaciones/tutor/:id_usuario` |
+| HU-14 | Crear Flashcards | `POST /api/flashcards` (además `POST /api/flashcards/:id_flashcard/tarjetas` para agregar tarjetas sueltas) |
+| HU-15 | Compartir Flashcards | `PATCH /api/flashcards/:id_flashcard/compartir`, `GET /api/flashcards/compartidas` |
+| HU-16 | Crear Cuestionario | `POST /api/cuestionarios` |
+| HU-17 | Resolver Cuestionario | `GET /api/cuestionarios/:id_cuestionario` (sin `respuesta_correcta` si no eres el dueño), `POST /api/cuestionarios/:id_cuestionario/resolver` |
 
 **Épica 1 (Gestión de Usuarios): completa.**
 **Épica 2 (Solicitudes y Tutorías): completa.**
 **Épica 3 (Grupos de Estudio): completa.**
 **Épica 4 (Biblioteca de Recursos): completa.**
+**Épica 5 (Flashcards y Cuestionarios): completa.**
+**Épica 6 (Calendario y Organización): completa.**
+**Épica 9 (Evaluación y Reputación): completa.**
 
 ## 6. Siguiente paso pendiente
 
 Elegir la siguiente épica a implementar. Candidatas naturales según `HistoriasDeUsuario.md`:
-- **Épica 6: Calendario y Organización** (HU-18 a HU-20).
-- **Épica 9: Evaluación y Reputación** (HU-26, HU-27).
-- **Épica 5: Flashcards y Cuestionarios** (HU-14 a HU-17).
+- **Épica 7: Comunicación** (HU-21, HU-22) — probablemente requiera websockets/chat en tiempo real, más compleja.
+- **Épica 8: Seguimiento Académico** (HU-23 en adelante) — buen candidato para agregar la tabla de "intentos de cuestionario" que quedó pendiente de HU-17.
+- **Épica 10: Asistencia** (revisar `HistoriasDeUsuario.md`, ya existe la entidad `Asistencia` en el MER desde la Épica 3).
 
 No hay una decisión tomada todavía sobre cuál sigue — se debe preguntar al retomar.
 

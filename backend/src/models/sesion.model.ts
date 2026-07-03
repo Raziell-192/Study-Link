@@ -45,3 +45,9 @@ export async function listarSesionesPorGrupo(id_grupo: string): Promise<Sesion[]
   const result = await pool.query(query, [id_grupo]);
   return result.rows;
 }
+
+export async function buscarSesionPorId(id_sesion: string): Promise<Sesion | null> {
+  const query = `SELECT * FROM sesion_estudio WHERE id_sesion = $1;`;
+  const result = await pool.query(query, [id_sesion]);
+  return result.rows[0] || null;
+}

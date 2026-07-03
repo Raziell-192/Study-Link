@@ -16,5 +16,4 @@ router.get('/materia/:id_materia', verificarToken, listarPorMateria);
 router.get('/:id_apunte', verificarToken, obtener);
 router.delete('/:id_apunte', verificarToken, eliminar);
 
-
 export default router;

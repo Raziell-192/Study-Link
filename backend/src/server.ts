@@ -3,11 +3,11 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { pool } from './config/database';
 import authRoutes from './routes/auth.routes';
-import { verificarToken, AuthRequest } from './middleware/auth.middleware';
 import usuarioRoutes from './routes/usuario.routes';
 import solicitudRoutes from './routes/solicitud.routes';
 import grupoRoutes from './routes/grupo.routes';
 import sesionRoutes from './routes/sesion.routes';
+import apunteRoutes from './routes/apunte.routes';
 
 dotenv.config();
 
@@ -16,7 +16,6 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use('/api/solicitudes', solicitudRoutes);
 
 // Ruta de salud, para verificar que el servidor está vivo
 app.get('/health', (req, res) => {
@@ -34,8 +33,10 @@ app.get('/db-test', async (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', usuarioRoutes);
+app.use('/api/solicitudes', solicitudRoutes);
 app.use('/api/grupos', grupoRoutes);
 app.use('/api/sesiones', sesionRoutes);
+app.use('/api/apuntes', apunteRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);

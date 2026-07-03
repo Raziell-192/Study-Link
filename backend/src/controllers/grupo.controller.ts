@@ -1,6 +1,5 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middlewares/auth.middleware';
-import { crearGrupo } from '../models/grupo.model';
 import { crearGrupo, buscarGrupoPorId, esMiembro, unirseAGrupo } from '../models/grupo.model';
 import { listarMiembros, expulsarMiembro, cambiarRolMiembro } from '../models/grupo.model';
 

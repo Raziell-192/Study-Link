@@ -36,6 +36,7 @@ backend/src/
 | 006 | `006_create_miembro_grupo.sql` | `miembro_grupo` | Se agregó `fecha_union` (no estaba en el MER). `rol` inicialmente solo aceptaba Tutor/Tutorado. |
 | 007 | `007_alter_miembro_grupo_rol.sql` | `miembro_grupo` (ALTER) | Se agregó el valor `'Organizador'` al CHECK de `rol`, para el creador del grupo. |
 | 008 | `008_create_sesion_estudio.sql` | `sesion_estudio` | Se agregó `id_creador` (no estaba en el MER). `modalidad` definida como `'Presencial'`/`'Virtual'`. CHECK `fecha_fin > fecha_inicio`. |
+| 009 | `009_create_apunte.sql` | `apunte` | Se agregó `tipo_archivo` (CHECK `'PDF'/'Imagen'/'Enlace'/'Presentacion'`, no está en el MER) y `descripcion` (no está en el MER, permite búsqueda de texto en HU-12). Índice en `id_materia` para el listado. |
 
 **Para correr todas las migraciones en un ambiente nuevo, en este orden exacto:**
 ```bash
@@ -47,6 +48,7 @@ psql -U postgres -d studylink -f backend/src/db/migrations/005_create_grupo.sql
 psql -U postgres -d studylink -f backend/src/db/migrations/006_create_miembro_grupo.sql
 psql -U postgres -d studylink -f backend/src/db/migrations/007_alter_miembro_grupo_rol.sql
 psql -U postgres -d studylink -f backend/src/db/migrations/008_create_sesion_estudio.sql
+psql -U postgres -d studylink -f backend/src/db/migrations/009_create_apunte.sql
 ```
 (Aún no tenemos un runner automático de migraciones — está en pendientes.)
 
@@ -58,6 +60,9 @@ psql -U postgres -d studylink -f backend/src/db/migrations/008_create_sesion_est
 - **Rol `'Organizador'` agregado al ENUM de `miembro_grupo`** (migración 007): el creador de un grupo no encaja como "Tutor" ni "Tutorado".
 - **HU-10 (Gestionar Miembros)**: solo el `id_creador` del grupo puede expulsar o cambiar roles; cualquier miembro puede listar. El creador no puede expulsarse a sí mismo.
 - **HU-07 (Programar Sesión)**: `Sesion_Estudio` depende de `Grupo`, se pospuso hasta terminar la Épica 3, respetando el MER tal cual. Solo `Organizador` o `Tutor` del grupo pueden programar sesiones, un `Tutorado` no puede.
+- **HU-11 (Subir Apuntes) — el backend NO maneja el binario**: se decidió que el cliente (Flutter) sube el archivo directo a Firebase Storage y solo manda `archivo_url` ya resuelta al backend. El backend únicamente valida y guarda los metadatos (`titulo`, `descripcion`, `tipo_archivo`, `archivo_url`) en Postgres. No hay `multer` ni manejo de multipart en el backend. Motivo: no había credenciales de Firebase (`serviceAccountKey.json`) disponibles para integrar `firebase-admin` en este momento; queda como mejora futura si se decide subir por el backend en vez de por el cliente.
+- **HU-13 (Descargar Recursos)**: como el binario vive en Firebase, "descargar" es simplemente `GET /api/apuntes/:id_apunte`, que devuelve los metadatos + `archivo_url`, y el cliente descarga directo desde esa URL. El backend no hace proxy del archivo.
+- **`tipo_archivo` con CHECK `'PDF'/'Imagen'/'Enlace'/'Presentacion'`**: se tomó de la lista explícita en `AppMovil.md` sección 10 ("Biblioteca Compartida de Apuntes"), aunque el MER no tenía esta columna.
 
 ## 5. Historias de Usuario completadas
 
@@ -73,19 +78,30 @@ psql -U postgres -d studylink -f backend/src/db/migrations/008_create_sesion_est
 | HU-08 | Crear Grupo | `POST /api/grupos` |
 | HU-09 | Unirse a Grupo | `POST /api/grupos/:id_grupo/unirse` |
 | HU-10 | Gestionar Miembros | `GET /api/grupos/:id_grupo/miembros`, `DELETE /api/grupos/:id_grupo/miembros/:id_usuario`, `PATCH /api/grupos/:id_grupo/miembros/:id_usuario/rol` |
+| HU-11 | Subir Apuntes | `POST /api/apuntes` |
+| HU-12 | Consultar Biblioteca | `GET /api/apuntes/buscar?q=...&id_materia=...`, `GET /api/apuntes/materia/:id_materia` |
+| HU-13 | Descargar Recursos | `GET /api/apuntes/:id_apunte` (además `DELETE /api/apuntes/:id_apunte`, solo el autor puede borrar su apunte) |
 
 **Épica 1 (Gestión de Usuarios): completa.**
 **Épica 2 (Solicitudes y Tutorías): completa.**
 **Épica 3 (Grupos de Estudio): completa.**
+**Épica 4 (Biblioteca de Recursos): completa.**
 
 ## 6. Siguiente paso pendiente
 
 Elegir la siguiente épica a implementar. Candidatas naturales según `HistoriasDeUsuario.md`:
-- **Épica 4: Biblioteca de Recursos** (HU-11 a HU-13) — requiere definir cómo se suben archivos.
 - **Épica 6: Calendario y Organización** (HU-18 a HU-20).
 - **Épica 9: Evaluación y Reputación** (HU-26, HU-27).
+- **Épica 5: Flashcards y Cuestionarios** (HU-14 a HU-17).
 
 No hay una decisión tomada todavía sobre cuál sigue — se debe preguntar al retomar.
+
+**Bugs corregidos en esta sesión (no relacionados con una HU específica, arrastrados de antes):**
+- `server.ts` importaba `verificarToken`/`AuthRequest` desde `./middleware/auth.middleware` (carpeta inexistente, es `middlewares/`). Rompía el build. Se quitó ese import (no se usaba directamente en `server.ts`) y se corrigió el montaje de rutas.
+- `solicitud.routes.ts`, `grupo.routes.ts`, `auth.routes.ts` y `grupo.controller.ts` tenían imports duplicados del mismo módulo (parece que cada HU nueva agregaba un `import` en vez de extender el existente) — causaba error de TypeScript `Duplicate identifier`. Se consolidaron en un solo import por archivo.
+- `@types/express` estaba en `^5.0.6` pero la dependencia real es `express@^4.19.2` (Express 4) — el mismatch de versiones de tipos causaba errores `string | string[]` en casi todos los controllers al leer `req.params`. Se fijó `@types/express` a `^4.17.21`.
+- Faltaba `@types/pg` como devDependency (causaba `Could not find a declaration file for module 'pg'`). Se agregó.
+- Se corrió `npx tsc --noEmit` y el proyecto compila limpio. Nota: en este sandbox `npm install` no pudo compilar el binario nativo de `bcrypt` (descarga bloqueada por red), se usó `--ignore-scripts` solo para validar tipos; en un entorno normal con acceso a red esto no debería pasar.
 
 **Pendiente de decisión del equipo:** fusionar `develop` → `main`. Se acordó esperar a terminar la Épica 2 completa como hito; ese hito ya se cumplió (y también se completó la Épica 3).
 

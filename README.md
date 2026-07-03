@@ -31,7 +31,7 @@ studylink/
 | Notificaciones | Firebase Cloud Messaging |
 | Arquitectura | MVVM + Clean Architecture (Repository Pattern con fallback online/offline) |
 
-##  Cómo empezar
+## Cómo empezar
 
 ### Backend
 ```bash
@@ -47,6 +47,6 @@ flutter pub get
 flutter run
 ```
 
-## Documentación funcional
+##  Documentación funcional
 
 Toda la documentación del proyecto (requisitos, casos de uso, historias de usuario y modelo de datos) vive en [`docs/`](./docs).

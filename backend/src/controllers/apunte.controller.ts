@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { crearApunte, listarApuntesPorMateria } from '../models/apunte.model';
+import { crearApunte, listarApuntesPorMateria, buscarApuntePorId } from '../models/apunte.model';
 
 const TIPOS_VALIDOS = ['PDF', 'Imagen', 'Enlace', 'Presentacion'];
 
@@ -40,6 +41,26 @@ export async function listarPorMateria(req: AuthRequest, res: Response) {
     return res.status(200).json({ apuntes });
   } catch (error) {
     console.error('Error en listarPorMateria() apuntes:', error);
+    return res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+}
+
+export async function obtenerParaDescarga(req: AuthRequest, res: Response) {
+  try {
+    const { id_apunte } = req.params;
+    const apunte = await buscarApuntePorId(id_apunte);
+
+    if (!apunte) {
+      return res.status(404).json({ error: 'Apunte no encontrado.' });
+    }
+
+    return res.status(200).json({
+      titulo: apunte.titulo,
+      archivo_url: apunte.archivo_url,
+      tipo: apunte.tipo,
+    });
+  } catch (error) {
+    console.error('Error en obtenerParaDescarga():', error);
     return res.status(500).json({ error: 'Error interno del servidor.' });
   }
 }

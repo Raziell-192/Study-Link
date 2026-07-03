@@ -6,6 +6,7 @@ import authRoutes from './routes/auth.routes';
 import { verificarToken, AuthRequest } from './middleware/auth.middleware';
 import usuarioRoutes from './routes/usuario.routes';
 import solicitudRoutes from './routes/solicitud.routes';
+import grupoRoutes from './routes/grupo.routes';
 
 dotenv.config();
 
@@ -32,6 +33,8 @@ app.get('/db-test', async (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', usuarioRoutes);
+app.use('/api/grupos', grupoRoutes);
+
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);

@@ -68,3 +68,44 @@ export async function unirseAGrupo(id_usuario: string, id_grupo: string) {
   const result = await pool.query(query, [id_usuario, id_grupo]);
   return result.rows[0];
 }
+
+export interface MiembroConDatos {
+  id_miembro: string;
+  id_usuario: string;
+  nombre_completo: string;
+  correo: string;
+  rol: string;
+  fecha_union: Date;
+}
+
+export async function listarMiembros(id_grupo: string): Promise<MiembroConDatos[]> {
+  const query = `
+    SELECT mg.id_miembro, mg.id_usuario, u.nombre_completo, u.correo, mg.rol, mg.fecha_union
+    FROM miembro_grupo mg
+    JOIN usuario u ON u.id_usuario = mg.id_usuario
+    WHERE mg.id_grupo = $1
+    ORDER BY mg.fecha_union ASC;
+  `;
+  const result = await pool.query(query, [id_grupo]);
+  return result.rows;
+}
+
+export async function expulsarMiembro(id_usuario: string, id_grupo: string): Promise<boolean> {
+  const query = `DELETE FROM miembro_grupo WHERE id_usuario = $1 AND id_grupo = $2;`;
+  const result = await pool.query(query, [id_usuario, id_grupo]);
+  return (result.rowCount ?? 0) > 0;
+}
+
+export async function cambiarRolMiembro(
+  id_usuario: string,
+  id_grupo: string,
+  nuevoRol: string
+): Promise<MiembroConDatos | null> {
+  const query = `
+    UPDATE miembro_grupo SET rol = $3
+    WHERE id_usuario = $1 AND id_grupo = $2
+    RETURNING *;
+  `;
+  const result = await pool.query(query, [id_usuario, id_grupo, nuevoRol]);
+  return result.rows[0] || null;
+}

@@ -46,3 +46,25 @@ export async function crearGrupo(datos: NuevoGrupoInput): Promise<Grupo> {
     client.release();
   }
 }
+
+export async function buscarGrupoPorId(id_grupo: string): Promise<Grupo | null> {
+  const query = `SELECT * FROM grupo WHERE id_grupo = $1;`;
+  const result = await pool.query(query, [id_grupo]);
+  return result.rows[0] || null;
+}
+
+export async function esMiembro(id_usuario: string, id_grupo: string): Promise<boolean> {
+  const query = `SELECT 1 FROM miembro_grupo WHERE id_usuario = $1 AND id_grupo = $2;`;
+  const result = await pool.query(query, [id_usuario, id_grupo]);
+  return (result.rowCount ?? 0) > 0;
+}
+
+export async function unirseAGrupo(id_usuario: string, id_grupo: string) {
+  const query = `
+    INSERT INTO miembro_grupo (id_usuario, id_grupo, rol)
+    VALUES ($1, $2, 'Tutorado')
+    RETURNING *;
+  `;
+  const result = await pool.query(query, [id_usuario, id_grupo]);
+  return result.rows[0];
+}

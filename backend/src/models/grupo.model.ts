@@ -109,3 +109,9 @@ export async function cambiarRolMiembro(
   const result = await pool.query(query, [id_usuario, id_grupo, nuevoRol]);
   return result.rows[0] || null;
 }
+
+export async function obtenerRolEnGrupo(id_usuario: string, id_grupo: string): Promise<string | null> {
+  const query = `SELECT rol FROM miembro_grupo WHERE id_usuario = $1 AND id_grupo = $2;`;
+  const result = await pool.query(query, [id_usuario, id_grupo]);
+  return result.rows[0]?.rol || null;
+}

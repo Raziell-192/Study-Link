@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { verificarToken } from '../middlewares/auth.middleware';
-import { crear, listarPorMateria } from '../controllers/solicitud.controller';
 import { crear, listarPorMateria, aceptar } from '../controllers/solicitud.controller';
 
 const router = Router();

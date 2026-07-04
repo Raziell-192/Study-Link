@@ -1,12 +1,19 @@
 import { Router } from 'express';
 import { verificarToken } from '../middlewares/auth.middleware';
-import { crear, listarPorMateria } from '../controllers/apunte.controller';
-import { crear, listarPorMateria, obtenerParaDescarga } from '../controllers/apunte.controller';
+import {
+  subir,
+  listarPorMateria,
+  buscar,
+  obtener,
+  eliminar,
+} from '../controllers/apunte.controller';
 
 const router = Router();
 
-router.post('/', verificarToken, crear);
+router.post('/', verificarToken, subir);
+router.get('/buscar', verificarToken, buscar);
 router.get('/materia/:id_materia', verificarToken, listarPorMateria);
-router.get('/:id_apunte/descargar', verificarToken, obtenerParaDescarga);
+router.get('/:id_apunte', verificarToken, obtener);
+router.delete('/:id_apunte', verificarToken, eliminar);
 
 export default router;

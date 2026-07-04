@@ -1,7 +1,5 @@
 import { Router } from 'express';
 import { verificarToken } from '../middlewares/auth.middleware';
-import { crear } from '../controllers/grupo.controller';
-import { crear, unirse } from '../controllers/grupo.controller';
 import { crear, unirse, listar, expulsar, cambiarRol } from '../controllers/grupo.controller';
 
 const router = Router();

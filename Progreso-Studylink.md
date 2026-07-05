@@ -2,7 +2,7 @@
 
 > Este archivo se actualiza cada vez que se cierra una Historia de Usuario o se toma una decisión de diseño importante. Con esto tienes el contexto necesario para seguir sin repetir pasos ni contradecir decisiones ya tomadas.
 
-**Última actualización:** Backend completo — Épicas 1 a 10 cerradas (todas las HU salvo Gamificación, HU-30/31, que aún no se ha tocado). Pendiente fusionar `develop` a `main`.
+**Última actualización:** Backend completo — Épicas 1 a 11 cerradas (todas las HU del backend planeado en `HistoriasDeUsuario.md`, salvo Épica 12 Offline y Épica 13 Administración, que son de otro alcance). Pendiente fusionar `develop` a `main`.
 
 ---
 
@@ -24,7 +24,7 @@ backend/src/
 ├── middlewares/auth.middleware.ts
 ├── models/               # usuario, solicitud, grupo, sesion, apunte, evento, recordatorio,
 │                         # calificacion, flashcard, cuestionario, conversacion, mensaje,
-│                         # objetivo, estadistica, asistencia
+│                         # objetivo, estadistica, asistencia, logro
 ├── controllers/           # uno por módulo, mismo listado que models/
 ├── routes/                # uno por módulo, mismo listado que models/
 └── server.ts               # monta las ~15 rutas /api/*
@@ -52,6 +52,7 @@ backend/src/
 | 016 | `016_create_conversacion_mensaje.sql` | `conversacion`, `mensaje` | `id_usuario_1/2` (privada) o `id_grupo` (grupal) en `conversacion`, no está en el MER. CHECK exige exactamente los campos de cada tipo. |
 | 017 | `017_create_objetivo.sql` | `objetivo` | Tal cual el MER + `fecha_creacion`. `progreso` 0-100, estado derivado (no persistido). |
 | 018 | `018_create_asistencia.sql` | `asistencia` | Tal cual el MER. `UNIQUE(id_sesion, id_usuario)`, registro único (no check-in/out separado). |
+| 019 | `019_create_logro.sql` | `logro`, `usuario_logro` | Tal cual el MER + `logro.codigo` (no en el MER, clave interna de criterio). Semilla de 6 logros. |
 
 **Para levantar la base de datos desde cero (nuevo integrante, sin datos previos), en este orden — sin correr la 015:**
 ```bash
@@ -72,6 +73,7 @@ psql -U postgres -d studylink -f backend/src/db/migrations/014_create_cuestionar
 psql -U postgres -d studylink -f backend/src/db/migrations/016_create_conversacion_mensaje.sql
 psql -U postgres -d studylink -f backend/src/db/migrations/017_create_objetivo.sql
 psql -U postgres -d studylink -f backend/src/db/migrations/018_create_asistencia.sql
+psql -U postgres -d studylink -f backend/src/db/migrations/019_create_logro.sql
 ```
 
 ## 4. Decisiones de diseño importantes
@@ -98,6 +100,10 @@ psql -U postgres -d studylink -f backend/src/db/migrations/018_create_asistencia
 - **HU-25 (Estadísticas) es un MVP con datos ya existentes**: horas de estudio y sesiones completadas se calculan de `sesion_estudio` (vía membresía en `miembro_grupo`); tutorías impartidas/recibidas de `solicitud_estudio`. **No incluye** flashcards estudiadas ni cuestionarios completados — no hay tablas de tracking para esos eventos (decisión explícita: no crearlas todavía). "Sesión completada" se aproxima como `fecha_fin < NOW()`, no hay marca explícita de asistencia real vs solo "ya pasó".
 - **Asistencia (HU-28) es registro único, no check-in/check-out en tiempo real**: el tutor registra `hora_ingreso` y `hora_salida` de una vez (usualmente después de la sesión), no en el momento exacto en que cada quien entra/sale. `UNIQUE(id_sesion, id_usuario)` con `ON CONFLICT DO UPDATE` permite corregir un registro sin fallar por duplicado.
 - **Solo Organizador/Tutor del grupo pueden registrar asistencia** de una sesión — mismo patrón de permisos que HU-07.
+- **HU-30/31 (Gamificación) sin job en segundo plano**: no hay cron/cola, mismo criterio que Recordatorios y Chat. El otorgamiento de logros se calcula de forma perezosa (`verificarYOtorgarLogros`) cada vez que el usuario consulta `GET /api/logros/mios`: se comparan contadores de actividad ya existentes en BD contra umbrales fijos, y se insertan (`ON CONFLICT DO NOTHING`) los logros recién alcanzados. Esto cubre HU-30 (recibir el logro) y HU-31 (verlos) en una sola llamada; el arreglo `nuevos` en la respuesta distingue lo otorgado en esa consulta para que el cliente pueda mostrar una notificación puntual.
+- **Catálogo de 6 logros** (umbrales fijados por el equipo, no especificados en `AppMovil.md` sección 20): 1 y 5 objetivos completados, 5 asistencias registradas, 3 tutorías impartidas, 3 apuntes subidos, 5 sesiones de grupo completadas (mismo criterio de "completada" que HU-25: `fecha_fin < NOW()`).
+- **`logro.codigo` (no está en el MER)**: clave interna estable (ej. `objetivo_5`) para mapear cada fila del catálogo a su umbral en el backend, sin acoplarse al UUID ni al texto de `nombre`.
+- **"Niveles" de AppMovil.md sección 20 (Aprendiz/Colaborador/Mentor/Tutor/Tutor Destacado) no se implementan**: las HU-30/31 solo hablan de insignias/logros, no de niveles; el MER tampoco tiene una entidad para eso. Limitación conocida, ver sección 8.
 
 ## 5. Historias de Usuario completadas
 
@@ -132,15 +138,16 @@ psql -U postgres -d studylink -f backend/src/db/migrations/018_create_asistencia
 | HU-27 | Consultar Reputación | `GET /api/calificaciones/tutor/:id_usuario` |
 | HU-28 | Registrar Asistencia | `POST /api/asistencia` |
 | HU-29 | Consultar Historial de Asistencia | `GET /api/asistencia/mi-historial`, `GET /api/asistencia/sesion/:id_sesion` |
+| HU-30 | Obtener Logros | `GET /api/logros/mios` (otorga automáticamente los logros pendientes) |
+| HU-31 | Consultar Insignias | `GET /api/logros/mios`, `GET /api/logros/catalogo` |
 
-**Épicas 1, 2, 3, 4, 5, 6, 7, 8, 9 y 10: completas.**
-**Épica 11 (Gamificación, HU-30/31): sin empezar.**
+**Épicas 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 y 11: completas.**
 
 ## 6. Siguiente paso pendiente
 
-- **Épica 11: Gamificación** (HU-30 Obtener Logros, HU-31 Consultar Insignias) — es lo único que falta del backend planeado en `HistoriasDeUsuario.md`.
-- **Fusionar `develop` → `main`**: pendiente en esta sesión, hito grande (todo el backend funcional).
+- **Fusionar `develop` → `main`**: pendiente en esta sesión, hito grande (todo el backend funcional, Épicas 1 a 11).
 - **Empezar el frontend Flutter**: no se ha tocado nada de `app/` todavía — todo el trabajo hasta ahora es backend puro, probado vía `curl`.
+- Épicas 12 (Resiliencia Offline) y 13 (Administración) quedan fuera del alcance de este backend por ahora — no estaban en el plan original de `PROGRESS.md` hasta esta actualización.
 
 ## 7. Bugs corregidos en sesión de merge de ramas (no ligados a una HU específica)
 
@@ -159,6 +166,8 @@ psql -U postgres -d studylink -f backend/src/db/migrations/018_create_asistencia
 - Falta tabla de "intentos de cuestionario" para HU-17/HU-25 si se quiere trackear historial real.
 - Chat (HU-21/22) usa polling, no WebSockets — mejora futura si se quiere tiempo real de verdad.
 - HU-25 no incluye flashcards estudiadas ni cuestionarios completados (sin tracking de esos eventos).
+- Niveles de gamificación (Aprendiz/Colaborador/Mentor/Tutor/Tutor Destacado, AppMovil.md sección 20) no implementados — solo insignias (HU-30/31), no hay entidad de "nivel" en el MER.
+- Umbrales del catálogo de logros son una decisión de equipo (no vienen de la documentación); si el negocio pide otros números, solo hay que tocar `UMBRALES` en `logro.model.ts` y, si aplica, agregar filas nuevas a la tabla `logro`.
 
 ## 9. Cómo levantar el proyecto desde cero (para un nuevo integrante)
 

@@ -17,6 +17,7 @@ import conversacionRoutes from './routes/conversacion.routes';
 import mensajeRoutes from './routes/mensaje.routes';
 import objetivoRoutes from './routes/objetivo.routes';
 import estadisticaRoutes from './routes/estadistica.routes';
+import asistenciaRoutes from './routes/asistencia.routes';
 
 dotenv.config();
 
@@ -54,6 +55,7 @@ app.use('/api/conversaciones', conversacionRoutes);
 app.use('/api/mensajes', mensajeRoutes);
 app.use('/api/objetivos', objetivoRoutes);
 app.use('/api/estadisticas', estadisticaRoutes);
+app.use('/api/asistencia', asistenciaRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);

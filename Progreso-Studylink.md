@@ -146,8 +146,37 @@ psql -U postgres -d studylink -f backend/src/db/migrations/019_create_logro.sql
 ## 6. Siguiente paso pendiente
 
 - **Fusionar `develop` → `main`**: pendiente en esta sesión, hito grande (todo el backend funcional, Épicas 1 a 11).
-- **Empezar el frontend Flutter**: no se ha tocado nada de `app/` todavía — todo el trabajo hasta ahora es backend puro, probado vía `curl`.
+- **Frontend Flutter — arrancado en esta sesión**: estructura Clean Architecture (`core/` + `features/<módulo>/{data,domain,presentation}`) y módulo `auth` completo (HU-01/02/03: registro, login, splash con verificación de sesión, perfil básico, logout). Falta el resto de módulos (solicitudes, grupos, biblioteca, flashcards, cuestionarios, calendario, chat, objetivos, calificaciones, asistencia, logros) y la capa Isar de offline (Épica 12).
+- **IMPORTANTE**: el código de `app/` se escribió a mano sin Flutter SDK disponible en el entorno de generación — nadie lo ha compilado todavía. Antes de seguir, alguien con Flutter instalado debe:
+  1. `cd app && flutter create . --project-name studylink` (genera `android/`, `ios/`, `web/`, etc. sin tocar `lib/` ni `pubspec.yaml` si ya existen — puede pedir confirmar sobreescritura de algún archivo de plataforma, aceptar).
+  2. `flutter pub get`.
+  3. Revisar que compile (`flutter analyze`) y corregir cualquier detalle de versión de paquete.
+  4. Ajustar `ApiConfig.baseUrl` en `lib/core/network/api_client.dart` según el entorno (emulador Android usa `10.0.2.2`, iOS simulator usa `localhost`, dispositivo físico usa la IP de la máquina backend).
 - Épicas 12 (Resiliencia Offline) y 13 (Administración) quedan fuera del alcance de este backend por ahora — no estaban en el plan original de `PROGRESS.md` hasta esta actualización.
+
+## 6.1 Estructura del frontend (`app/`)
+
+```
+app/
+├── pubspec.yaml            # flutter_bloc, dio, isar, go_router, flutter_secure_storage, connectivity_plus
+├── lib/
+│   ├── main.dart            # inyección raíz (Repository/BlocProvider) + MaterialApp.router
+│   ├── core/
+│   │   ├── network/         # ApiClient (Dio + interceptor JWT), ConnectivityService
+│   │   ├── storage/         # TokenStorage (flutter_secure_storage)
+│   │   ├── errors/          # AppException y subtipos (SinConexion, NoAutorizado)
+│   │   ├── theme/           # AppTheme (Material 3, claro/oscuro)
+│   │   ├── router/          # app_router.dart (go_router, única fuente de rutas)
+│   │   └── widgets/         # widgets compartidos (CampoFormulario, etc.)
+│   └── features/
+│       ├── auth/             # HU-01/02/03 — completo
+│       │   ├── data/         # models, datasources (Dio), repositories (impl)
+│       │   ├── domain/       # repositories (interfaz abstracta)
+│       │   └── presentation/ # cubit (AuthCubit/AuthState), pages, widgets
+│       └── home/             # placeholder tras login, ahí se cuelgan los demás módulos
+```
+
+**Decisión de arquitectura**: cada `feature/` replica `data/domain/presentation` (Clean Architecture + MVVM de AppMovil.md 23.2). `Cubit` de `flutter_bloc` hace de ViewModel. Los repositorios son la única capa que decide online (Dio → API REST) vs. offline (pendiente: Isar); por ahora todos los repos solo tienen la rama online, la rama Isar se agrega en Épica 12 sin tocar la capa de presentación.
 
 ## 7. Bugs corregidos en sesión de merge de ramas (no ligados a una HU específica)
 

@@ -20,8 +20,10 @@ dependencies:
   connectivity_plus: ^6.0.3
 
   # Persistencia local offline (Isar, ver AppMovil.md sección 23)
-  isar: ^3.1.0+1
-  isar_flutter_libs: ^3.1.0+1
+  # TEMPORALMENTE FUERA: isar_flutter_libs 3.1.0+1 no declara namespace en su
+  # gradle y truena con AGP nuevo. Se vuelve a meter en la Épica 12 (offline).
+  # isar: ^3.1.0+1
+  # isar_flutter_libs: ^3.1.0+1
   path_provider: ^2.1.3
 
   # Sesión / token JWT
@@ -38,8 +40,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
-  build_runner: ^2.4.11
-  isar_generator: ^3.1.0+1
+  # build_runner: ^2.4.11
+  # isar_generator: ^3.1.0+1
 
 flutter:
   uses-material-design: true

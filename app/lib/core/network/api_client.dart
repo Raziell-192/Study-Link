@@ -4,8 +4,14 @@ import '../storage/token_storage.dart';
 
 /// Cambia esto según entorno. El backend corre en localhost:3000 (ver
 /// Progreso-Studylink.md sección 9). En emulador Android usar 10.0.2.2.
+// class ApiConfig {
+//   static const String _host = String.fromEnvironment('API_HOST', defaultValue: '10.0.2.2');
+//   static const int _port = 3000;
+//   static String get baseUrl => 'http://$_host:$_port/api';
+// }
 class ApiConfig {
-  static const String _host = String.fromEnvironment('API_HOST', defaultValue: '10.0.2.2');
+  // Cambiamos '10.0.2.2' por 'localhost'
+  static const String _host = String.fromEnvironment('API_HOST', defaultValue: 'localhost');
   static const int _port = 3000;
   static String get baseUrl => 'http://$_host:$_port/api';
 }

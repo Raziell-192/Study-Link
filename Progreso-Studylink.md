@@ -2,7 +2,7 @@
 
 > Este archivo se actualiza cada vez que se cierra una Historia de Usuario o se toma una decisión de diseño importante. Con esto tienes el contexto necesario para seguir sin repetir pasos ni contradecir decisiones ya tomadas.
 
-**Última actualización:** Backend completo — Épicas 1 a 11 cerradas (todas las HU del backend planeado en `HistoriasDeUsuario.md`, salvo Épica 12 Offline y Épica 13 Administración, que son de otro alcance). Pendiente fusionar `develop` a `main`.
+**Última actualización:** Backend completo (Épicas 1-11). Frontend Flutter: 12 módulos de UI conectados al backend (auth, materia, solicitudes, grupos, apuntes, estadísticas, logros, objetivos, calificaciones, calendario) fusionados a `main`. Pendiente: flashcards, cuestionarios, chat, recordatorios, asistencia, y la primera compilación real con Flutter SDK.
 
 ---
 
@@ -14,21 +14,20 @@
 - **Patrón de capas backend:** `routes/` → `controllers/` → `models/` (queries SQL directas con `pg`, sin ORM).
 - **Regla de seguridad:** el `id_usuario` autenticado **nunca** se toma del `body` — siempre sale del JWT verificado.
 - **Patrón de permisos por rol de grupo:** varias HU (programar sesión, registrar asistencia) validan que quien actúa sea `Organizador` o `Tutor` en `miembro_grupo`, usando `obtenerRolEnGrupo()`.
+- **Frontend:** Flutter + Clean Architecture (`core/` + `features/<módulo>/{data,domain,presentation}`), `flutter_bloc` (Cubit) como ViewModel, `dio` para HTTP, `go_router` para navegación. Ver sección 6.1.
 
-## 2. Estructura de carpetas actual
+## 2. Estructura de carpetas actual (backend)
 
-```
 backend/src/
 ├── config/database.ts
-├── db/migrations/       # 001 a 018, ver sección 3
+├── db/migrations/       # 001 a 019, ver sección 3
 ├── middlewares/auth.middleware.ts
-├── models/               # usuario, solicitud, grupo, sesion, apunte, evento, recordatorio,
+├── models/               # usuario, materia, solicitud, grupo, sesion, apunte, evento, recordatorio,
 │                         # calificacion, flashcard, cuestionario, conversacion, mensaje,
 │                         # objetivo, estadistica, asistencia, logro
 ├── controllers/           # uno por módulo, mismo listado que models/
 ├── routes/                # uno por módulo, mismo listado que models/
-└── server.ts               # monta las ~15 rutas /api/*
-```
+└── server.ts               # monta las ~16 rutas /api/*
 
 ## 3. Migraciones SQL ejecutadas (en orden)
 
@@ -104,8 +103,12 @@ psql -U postgres -d studylink -f backend/src/db/migrations/019_create_logro.sql
 - **Catálogo de 6 logros** (umbrales fijados por el equipo, no especificados en `AppMovil.md` sección 20): 1 y 5 objetivos completados, 5 asistencias registradas, 3 tutorías impartidas, 3 apuntes subidos, 5 sesiones de grupo completadas (mismo criterio de "completada" que HU-25: `fecha_fin < NOW()`).
 - **`logro.codigo` (no está en el MER)**: clave interna estable (ej. `objetivo_5`) para mapear cada fila del catálogo a su umbral en el backend, sin acoplarse al UUID ni al texto de `nombre`.
 - **"Niveles" de AppMovil.md sección 20 (Aprendiz/Colaborador/Mentor/Tutor/Tutor Destacado) no se implementan**: las HU-30/31 solo hablan de insignias/logros, no de niveles; el MER tampoco tiene una entidad para eso. Limitación conocida, ver sección 8.
+- **Módulo `materia` no existía en el backend original**: la tabla `materia` (migración 002) nunca tuvo endpoint. Se agregó en esta sesión (`materia.model.ts` / `materia.controller.ts` / `materia.routes.ts`, `GET /api/materias`) porque el frontend lo necesitaba como selector real en solicitudes, grupos y apuntes — antes se escribían UUIDs a mano.
+- **Frontend: todos los módulos completados siguen el mismo patrón mecánico** — `data/models` → `data/datasources` (Dio) → `domain/repositories` (interfaz) → `data/repositories` (impl) → `presentation/cubit` (state + cubit) → `presentation/pages`. Cada módulo nuevo se registra en 3 lugares: `main.dart` (RepositoryProvider + BlocProvider), `app_router.dart` (rutas), `home_page.dart` (botón de navegación).
+- **IDs de materia/grupo/sesión en formularios sin selector real**: donde aún no existe un módulo de listado (ej. `unirse_grupo_page.dart`, `calificar_page.dart`), se ingresan por UUID a mano como solución provisional. `selector_materia.dart` (widget compartido) ya resuelve esto para materia en solicitudes/grupos/apuntes.
+- **`url_launcher` agregado al frontend**: necesario para "descargar" apuntes (HU-13), abre `archivo_url` en el navegador/app externa ya que no hay binario real (Firebase Storage pendiente).
 
-## 5. Historias de Usuario completadas
+## 5. Historias de Usuario completadas (backend)
 
 | HU | Descripción | Endpoint(s) |
 |---|---|---|
@@ -140,14 +143,32 @@ psql -U postgres -d studylink -f backend/src/db/migrations/019_create_logro.sql
 | HU-29 | Consultar Historial de Asistencia | `GET /api/asistencia/mi-historial`, `GET /api/asistencia/sesion/:id_sesion` |
 | HU-30 | Obtener Logros | `GET /api/logros/mios` (otorga automáticamente los logros pendientes) |
 | HU-31 | Consultar Insignias | `GET /api/logros/mios`, `GET /api/logros/catalogo` |
+| — | Listar Materias (no es HU formal, soporte de frontend) | `GET /api/materias` |
 
-**Épicas 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 y 11: completas.**
+**Épicas 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 y 11: completas (backend).**
+
+## 5.1 Historias de Usuario completadas (frontend Flutter)
+
+| HU | Módulo Flutter | Pantallas |
+|---|---|---|
+| HU-01/02/03 | `features/auth/` | Splash, Login, Registro, Perfil (dentro de Home) |
+| — | `features/materia/` | `SelectorMateria` (widget compartido, no pantalla propia) |
+| HU-04/05/06 | `features/solicitudes/` | Crear solicitud, listar/aceptar por materia |
+| HU-08/09/10 | `features/grupos/` | Crear grupo, unirse a grupo, detalle de miembros (expulsar/cambiar rol) |
+| HU-11/12/13 | `features/apuntes/` | Subir apunte, biblioteca (buscar/descargar/eliminar) |
+| HU-18/19 | `features/calendario/` | Mi calendario (CRUD eventos), calendario de grupo (eventos + sesiones) |
+| HU-23/24 | `features/objetivos/` | Crear objetivo, lista con slider de progreso |
+| HU-25 | `features/estadisticas/` | Dashboard de 4 tarjetas (solo lectura) |
+| HU-26/27 | `features/calificaciones/` | Calificar tutor (estrellas), ver reputación |
+| HU-30/31 | `features/logros/` | Grid de insignias (catálogo + obtenidos) |
+
+**Pendientes de frontend:** flashcards (HU-14/15), cuestionarios (HU-16/17), recordatorios (HU-20), chat (HU-21/22), asistencia (HU-28/29).
 
 ## 6. Siguiente paso pendiente
 
-- **Fusionar `develop` → `main`**: pendiente en esta sesión, hito grande (todo el backend funcional, Épicas 1 a 11).
-- **Frontend Flutter — arrancado en esta sesión**: estructura Clean Architecture (`core/` + `features/<módulo>/{data,domain,presentation}`) y módulo `auth` completo (HU-01/02/03: registro, login, splash con verificación de sesión, perfil básico, logout). Falta el resto de módulos (solicitudes, grupos, biblioteca, flashcards, cuestionarios, calendario, chat, objetivos, calificaciones, asistencia, logros) y la capa Isar de offline (Épica 12).
-- **IMPORTANTE**: el código de `app/` se escribió a mano sin Flutter SDK disponible en el entorno de generación — nadie lo ha compilado todavía. Antes de seguir, alguien con Flutter instalado debe:
+- **`develop` fusionada a `main`** (fast-forward, sin conflictos) — hecho en esta sesión, incluye los 12 módulos de frontend listados en 5.1 + el módulo `materia` de backend.
+- **Módulos de frontend faltantes**: flashcards, cuestionarios, recordatorios, chat, asistencia. Mismo patrón mecánico que los ya hechos (ver sección 4).
+- **IMPORTANTE — sigue sin compilarse**: todo el código de `app/` se escribió a mano sin Flutter SDK disponible en el entorno de generación — nadie lo ha compilado todavía. Antes de seguir agregando módulos (o al menos antes de dar por buena la app), alguien con Flutter instalado debe:
   1. `cd app && flutter create . --project-name studylink` (genera `android/`, `ios/`, `web/`, etc. sin tocar `lib/` ni `pubspec.yaml` si ya existen — puede pedir confirmar sobreescritura de algún archivo de plataforma, aceptar).
   2. `flutter pub get`.
   3. Revisar que compile (`flutter analyze`) y corregir cualquier detalle de versión de paquete.
@@ -156,34 +177,40 @@ psql -U postgres -d studylink -f backend/src/db/migrations/019_create_logro.sql
 
 ## 6.1 Estructura del frontend (`app/`)
 
-```
 app/
-├── pubspec.yaml            # flutter_bloc, dio, isar, go_router, flutter_secure_storage, connectivity_plus
+├── pubspec.yaml            # flutter_bloc, dio, isar (comentado), go_router, flutter_secure_storage,
+│                          # connectivity_plus, intl, jwt_decoder, url_launcher (agregado en esta sesión)
 ├── lib/
-│   ├── main.dart            # inyección raíz (Repository/BlocProvider) + MaterialApp.router
+│   ├── main.dart            # inyección raíz (Repository/BlocProvider por cada módulo) + MaterialApp.router
 │   ├── core/
 │   │   ├── network/         # ApiClient (Dio + interceptor JWT), ConnectivityService
 │   │   ├── storage/         # TokenStorage (flutter_secure_storage)
 │   │   ├── errors/          # AppException y subtipos (SinConexion, NoAutorizado)
 │   │   ├── theme/           # AppTheme (Material 3, claro/oscuro)
-│   │   ├── router/          # app_router.dart (go_router, única fuente de rutas)
+│   │   ├── router/          # app_router.dart (go_router, única fuente de rutas — 1 GoRoute por módulo)
 │   │   └── widgets/         # widgets compartidos (CampoFormulario, etc.)
 │   └── features/
 │       ├── auth/             # HU-01/02/03 — completo
-│       │   ├── data/         # models, datasources (Dio), repositories (impl)
-│       │   ├── domain/       # repositories (interfaz abstracta)
-│       │   └── presentation/ # cubit (AuthCubit/AuthState), pages, widgets
-│       └── home/             # placeholder tras login, ahí se cuelgan los demás módulos
-```
+│       ├── materia/          # SelectorMateria (widget reutilizado por solicitudes/grupos/apuntes)
+│       ├── solicitudes/      # HU-04/05/06 — completo
+│       ├── grupos/           # HU-08/09/10 — completo
+│       ├── apuntes/          # HU-11/12/13 — completo
+│       ├── calendario/       # HU-18/19 — completo
+│       ├── objetivos/        # HU-23/24 — completo
+│       ├── estadisticas/     # HU-25 — completo
+│       ├── calificaciones/   # HU-26/27 — completo
+│       ├── logros/           # HU-30/31 — completo
+│       └── home/             # dashboard con botones a cada módulo ya conectado
 
 **Decisión de arquitectura**: cada `feature/` replica `data/domain/presentation` (Clean Architecture + MVVM de AppMovil.md 23.2). `Cubit` de `flutter_bloc` hace de ViewModel. Los repositorios son la única capa que decide online (Dio → API REST) vs. offline (pendiente: Isar); por ahora todos los repos solo tienen la rama online, la rama Isar se agrega en Épica 12 sin tocar la capa de presentación.
 
-## 7. Bugs corregidos en sesión de merge de ramas (no ligados a una HU específica)
+## 7. Bugs corregidos (no ligados a una HU específica)
 
 - `server.ts` tenía un import roto a `./middleware/` inexistente (es `middlewares/`).
 - Imports duplicados del mismo módulo en varios archivos de rutas/controllers — consolidados.
 - `@types/express` en `^5.0.6` con `express@^4.19.2` real — mismatch de tipos. Fijado a `^4.17.21`.
 - Faltaba `@types/pg` — agregado.
+- Frontend: URL de `cambiarRol` en `grupo_remote_datasource.dart` no coincidía con la ruta real del backend (`PATCH /:id_grupo/miembros/:id_usuario/rol`, faltaba el sufijo `/rol`) — corregido.
 
 ## 8. Pendientes técnicos
 
@@ -197,9 +224,13 @@ app/
 - HU-25 no incluye flashcards estudiadas ni cuestionarios completados (sin tracking de esos eventos).
 - Niveles de gamificación (Aprendiz/Colaborador/Mentor/Tutor/Tutor Destacado, AppMovil.md sección 20) no implementados — solo insignias (HU-30/31), no hay entidad de "nivel" en el MER.
 - Umbrales del catálogo de logros son una decisión de equipo (no vienen de la documentación); si el negocio pide otros números, solo hay que tocar `UMBRALES` en `logro.model.ts` y, si aplica, agregar filas nuevas a la tabla `logro`.
+- **Frontend nunca compilado** (ver sección 6, punto de Flutter SDK) — riesgo principal antes de continuar agregando módulos.
+- Varias pantallas usan campos de ID (UUID) a mano en vez de selectores reales: unirse a grupo, calificar tutor (id_sesion/id_tutor), compartir evento (id_grupo). Reemplazar cuando existan módulos de listado (sesiones, grupos propios).
+- Falta conectar HU-25/29 con un módulo de "sesiones" propio en frontend (aún no se construyó `features/sesiones/`).
 
 ## 9. Cómo levantar el proyecto desde cero (para un nuevo integrante)
 
+**Backend:**
 ```bash
 cd backend
 npm install
@@ -209,3 +240,11 @@ psql -U postgres -c "CREATE DATABASE studylink;"
 npm run dev
 ```
 Servidor en `http://localhost:3000`. Probar con `curl http://localhost:3000/health`.
+
+**Frontend (pendiente primera compilación real, ver sección 6):**
+```bash
+cd app
+flutter create . --project-name studylink
+flutter pub get
+flutter analyze
+```

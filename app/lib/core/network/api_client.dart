@@ -5,7 +5,9 @@ import '../storage/token_storage.dart';
 /// Cambia esto según entorno. El backend corre en localhost:3000 (ver
 /// Progreso-Studylink.md sección 9). En emulador Android usar 10.0.2.2.
 class ApiConfig {
-  static const String baseUrl = 'http://10.0.2.2:3000/api';
+  static const String _host = String.fromEnvironment('API_HOST', defaultValue: '10.0.2.2');
+  static const int _port = 3000;
+  static String get baseUrl => 'http://$_host:$_port/api';
 }
 
 /// Envoltorio único de Dio para toda la app. Inyecta el JWT en cada
@@ -49,6 +51,7 @@ class ApiClient {
   /// no propaguen tipos de la librería HTTP hacia arriba.
   AppException traducirError(Object error) {
     if (error is DioException) {
+      print('DIO ERROR >> tipo=${error.type} mensaje=${error.message} uri=${error.requestOptions.uri}');
       if (error.type == DioExceptionType.connectionError ||
           error.type == DioExceptionType.connectionTimeout) {
         return SinConexionException();

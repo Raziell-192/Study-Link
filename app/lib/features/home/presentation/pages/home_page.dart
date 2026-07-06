@@ -37,9 +37,65 @@ class HomePage extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(usuario.matricula, style: Theme.of(context).textTheme.bodyMedium),
                 const SizedBox(height: 24),
-                const Text('Próximos módulos: solicitudes, grupos, biblioteca, '
+                // TODO: reemplazar id fijo por selector real cuando exista módulo Materia.
+                ElevatedButton.icon(
+                  onPressed: () => context.push('/solicitudes/00000000-0000-0000-0000-000000000000'),
+                  icon: const Icon(Icons.assignment_outlined),
+                  label: const Text('Ver solicitudes de estudio'),
+                ),
+                const SizedBox(height: 8),
+                ElevatedButton.icon(
+                  onPressed: () => context.push('/grupos/crear'),
+                  icon: const Icon(Icons.group_add_outlined),
+                  label: const Text('Crear grupo'),
+                ),
+                const SizedBox(height: 8),
+                ElevatedButton.icon(
+                  onPressed: () => context.push('/grupos/unirse'),
+                  icon: const Icon(Icons.login),
+                  label: const Text('Unirme a un grupo'),
+                ),
+                const SizedBox(height: 8),
+                ElevatedButton.icon(
+                  onPressed: () => context.push('/biblioteca/00000000-0000-0000-0000-000000000000'),
+                  icon: const Icon(Icons.library_books_outlined),
+                  label: const Text('Biblioteca de apuntes'),
+                ),
+                const SizedBox(height: 16),
+                const Text('Próximos módulos: biblioteca, '
                     'flashcards, calendario, chat, objetivos, calificaciones, '
-                    'asistencia, logros.'),
+                    'asistencia, logros.'
+                ),
+                const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    onPressed: () => context.push('/estadisticas'),
+                    icon: const Icon(Icons.bar_chart_outlined),
+                    label: const Text('Mis estadísticas'),
+                  ),
+                const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    onPressed: () => context.push('/logros'),
+                    icon: const Icon(Icons.emoji_events_outlined),
+                    label: const Text('Mis logros'),
+                  ),
+                const SizedBox(height: 8),
+                ElevatedButton.icon(
+                  onPressed: () => context.push('/objetivos'),
+                  icon: const Icon(Icons.flag_outlined),
+                  label: const Text('Mis objetivos'),
+                ),
+                const SizedBox(height: 8),
+                ElevatedButton.icon(
+                  onPressed: () => context.push('/calificar'),
+                  icon: const Icon(Icons.star_outline),
+                  label: const Text('Calificar tutor'),
+                ),
+                const SizedBox(height: 8),
+                ElevatedButton.icon(
+                  onPressed: () => context.push('/calendario'),
+                  icon: const Icon(Icons.calendar_month_outlined),
+                  label: const Text('Mi calendario'),
+                ),
               ],
             ),
           );

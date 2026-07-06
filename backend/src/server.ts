@@ -19,6 +19,7 @@ import objetivoRoutes from './routes/objetivo.routes';
 import estadisticaRoutes from './routes/estadistica.routes';
 import asistenciaRoutes from './routes/asistencia.routes';
 import logroRoutes from './routes/logro.routes';
+import materiaRoutes from './routes/materia.routes';
 
 dotenv.config();
 
@@ -58,6 +59,7 @@ app.use('/api/objetivos', objetivoRoutes);
 app.use('/api/estadisticas', estadisticaRoutes);
 app.use('/api/asistencia', asistenciaRoutes);
 app.use('/api/logros', logroRoutes);
+app.use('/api/materias', materiaRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
